@@ -7,21 +7,31 @@ use gtk4::{
 
 use crate::historymodel::HistoryModel;
 
+/// Trait for the post capture actions.
 pub trait PostCaptureAction {
-    fn handle(&self, history_model: &HistoryModel, conn: &SqliteConnection, pixbuf: Pixbuf);
+    /// The name of the post capture action.
+    fn name(&self) -> String;
+
+    /// Short description of the post capture action.
+    fn description(&self) -> String;
+
+    /// Gets called when executing the post capture action.
+    fn handle(&self, history_model: &HistoryModel, conn: &SqliteConnection, pixbuf: &mut Pixbuf);
 }
 
-pub fn current_action() -> &'static dyn PostCaptureAction {
-    // FIXME: Eventually this should do more than just this, but we'll get there
-    &SaveAndCopy
-}
+/// This struct represents the action of saving the pixbuf to disk.
+pub struct SaveToDisk;
 
-/// This struct represents an action that saves the screenshot to disk and then copies it into
-/// the user's clipboard
-struct SaveAndCopy;
+impl PostCaptureAction for SaveToDisk {
+    fn name(&self) -> String {
+        "Save to disk".to_owned()
+    }
 
-impl PostCaptureAction for SaveAndCopy {
-    fn handle(&self, history_model: &HistoryModel, conn: &SqliteConnection, pixbuf: Pixbuf) {
+    fn description(&self) -> String {
+        "Saves the screenshot to the Harddrive".to_owned()
+    }
+
+    fn handle(&self, history_model: &HistoryModel, conn: &SqliteConnection, pixbuf: &mut Pixbuf) {
         let now = chrono::Local::now();
 
         let settings = gio::Settings::new("kc.kcshot");
@@ -39,6 +49,23 @@ impl PostCaptureAction for SaveAndCopy {
             Err(why) => tracing::error!("Failed to save screenshot to file: {}", why),
         }
 
+        history_model.add_item_to_history(conn, Some(path), now.to_rfc3339(), None);
+    }
+}
+
+/// This struct represents the action of copying the picture to the users clipboard.
+pub struct CopyToClipboard;
+
+impl PostCaptureAction for CopyToClipboard {
+    fn name(&self) -> String {
+        "Copy to clipboard".to_owned()
+    }
+
+    fn description(&self) -> String {
+        "Copies the picture to the clipboard".to_owned()
+    }
+
+    fn handle(&self, _history_mod: &HistoryModel, _conn: &SqliteConnection, pixbuf: &mut Pixbuf) {
         let display = match gdk::Display::default() {
             Some(display) => display,
             None => {
@@ -49,7 +76,10 @@ impl PostCaptureAction for SaveAndCopy {
         let clipboard = display.clipboard();
 
         clipboard.set_texture(&gdk::Texture::for_pixbuf(&pixbuf));
-
-        history_model.add_item_to_history(conn, Some(path), now.to_rfc3339(), None)
     }
+}
+
+/// Vector of all available post capture actions.
+pub fn get_postcapture_actions() -> Vec<&'static dyn PostCaptureAction> {
+    vec![&SaveToDisk, &CopyToClipboard]
 }

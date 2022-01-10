@@ -92,7 +92,13 @@ impl EditorWindow {
         });
 
         match utils::pixbuf_for(&image.surface, rectangle) {
-            Some(pixbuf) => postcapture::current_action().handle(history_model, conn, pixbuf),
+            // Process all post capture actions
+            // TODO: Give the user the option which actions to run and in which order.
+            Some(mut pixbuf) => {
+                for action in postcapture::get_postcapture_actions() {
+                    action.handle(history_model, conn, &mut pixbuf)
+                }
+            },
             None => {
                 error!(
                     "Failed to create a pixbuf from the surface: {:?} with crop region {:#?}",
