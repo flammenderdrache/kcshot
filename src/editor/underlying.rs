@@ -92,12 +92,8 @@ impl EditorWindow {
         });
 
         match utils::pixbuf_for(&image.surface, rectangle) {
-            // Process all post capture actions
-            // TODO: Give the user the option which actions to run and in which order.
             Some(mut pixbuf) => {
-                for action in postcapture::get_postcapture_actions() {
-                    action.handle(history_model, conn, &mut pixbuf)
-                }
+                postcapture::do_postcapture_actions(history_model, conn, &mut pixbuf)
             },
             None => {
                 error!(

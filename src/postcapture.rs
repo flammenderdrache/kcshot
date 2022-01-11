@@ -7,6 +7,12 @@ use gtk4::{
 
 use crate::historymodel::HistoryModel;
 
+pub fn do_postcapture_actions(history_model: &HistoryModel, conn: &SqliteConnection, pixbuf: &mut Pixbuf) {
+    for action in get_postcapture_actions() {
+        action.handle(history_model, conn, pixbuf)
+    }
+}
+
 /// Trait for the post capture actions.
 pub trait PostCaptureAction {
     /// The name of the post capture action.
