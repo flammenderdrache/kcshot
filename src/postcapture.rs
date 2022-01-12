@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use diesel::SqliteConnection;
 use gtk4::{
     gdk::{self, prelude::*},
@@ -6,12 +8,6 @@ use gtk4::{
 };
 
 use crate::historymodel::HistoryModel;
-
-pub fn do_postcapture_actions(history_model: &HistoryModel, conn: &SqliteConnection, pixbuf: &mut Pixbuf) {
-    for action in get_postcapture_actions() {
-        action.handle(history_model, conn, pixbuf)
-    }
-}
 
 /// Trait for the post capture actions.
 pub trait PostCaptureAction {
@@ -96,7 +92,7 @@ impl PostCaptureAction for CopyToClipboard {
 
         {
             let settings = gio::Settings::new("kc.kcshot");
-            let test = settings.strv("test");
+            let test = settings.strv("post-capture-actions");
 
             tracing::info!("Before");
             for string in test {
@@ -107,7 +103,42 @@ impl PostCaptureAction for CopyToClipboard {
     }
 }
 
+/// Executes the post capture actions in the order they are defined in the settings.
+pub fn do_postcapture_actions(history_model: &HistoryModel, conn: &SqliteConnection, pixbuf: &mut Pixbuf) {
+    for action in get_actions_from_settings() {
+        action.handle(history_model, conn, pixbuf)
+    }
+}
+
+fn get_actions_from_settings() -> Vec<&'static dyn PostCaptureAction> {
+    let settings = gio::Settings::new("kc.kcshot");
+    let actions: Vec<String> = settings.strv("post-capture-actions")
+        .iter()
+        .map(|gstr| gstr.to_string())
+        .collect();
+
+    let action_lookup: HashMap<String, &dyn PostCaptureAction> = get_postcapture_actions()
+        .iter()
+        .map(|action| (action.id(), *action))
+        .collect();
+
+
+    let mut actions_todo = Vec::new();
+    for postcapture_action in actions {
+        if let Some(action) = action_lookup.get(postcapture_action.as_str()) {
+            actions_todo.push(*action)
+        } else {
+            tracing::warn!(
+                "Found post capture action `{}` in the settings, but not in list of available post capture actions!",
+                postcapture_action
+            )
+        }
+    }
+
+    actions_todo
+}
+
 /// Vector of all available post capture actions.
-pub fn get_postcapture_actions() -> Vec<&'static dyn PostCaptureAction> {
+fn get_postcapture_actions() -> Vec<&'static dyn PostCaptureAction> {
     vec![&SaveToDisk, &CopyToClipboard]
 }
