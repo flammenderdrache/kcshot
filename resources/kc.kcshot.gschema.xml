@@ -15,5 +15,10 @@
             <default>["test1", "test2"]</default>
             <summary>The actions to be performed, in the order they are to be performed</summary>
         </key>
+
+        <key name="post-capture-actions" type="as">
+            <default>["CopyToClipboard", "SaveToDisk"]</default>
+            <summary>The actions to be performed, in the order they are to be performed</summary>
+        </key>
     </schema>
 </schemalist>
