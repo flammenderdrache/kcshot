@@ -89,15 +89,6 @@ impl PostCaptureAction for CopyToClipboard {
         let clipboard = display.clipboard();
 
         clipboard.set_texture(&gdk::Texture::for_pixbuf(&pixbuf));
-
-        {
-            let settings = gio::Settings::new("kc.kcshot");
-            let test = settings.strv("post-capture-actions");
-
-            for string in test {
-                tracing::debug!("{}", string);
-            }
-        }
     }
 }
 
