@@ -94,11 +94,9 @@ impl PostCaptureAction for CopyToClipboard {
             let settings = gio::Settings::new("kc.kcshot");
             let test = settings.strv("post-capture-actions");
 
-            tracing::info!("Before");
             for string in test {
                 tracing::debug!("{}", string);
             }
-            tracing::info!("After");
         }
     }
 }
